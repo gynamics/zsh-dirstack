@@ -13,8 +13,7 @@ DIRSTACKFILE="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/dirs"
 DIRSTACKSIZE=20
 
 # create zsh cache directory if it does not exist
-[[ ! -d ${XDG_CACHE_HOME:-$HOME/.cache} ]] && mkdir ${XDG_CACHE_HOME:-$HOME/.cache}
-[[ ! -d ${DIRSTACKFILE%/*} ]] && mkdir ${DIRSTACKFILE%/*}
+mkdir -p "${DIRSTACKFILE%/*}"
 
 # filter out all invalid directory entries
 dirstack-valid-entries() {
@@ -25,8 +24,12 @@ dirstack-valid-entries() {
     done
 }
 
+# clean up dirstack
 dirstack-clean() {
-    dirstack=( "${(@f)"$(dirstack-valid-entries)"}" )
+    dirstack=( ${(@f)$(dirstack-valid-entries)} )
+    # pushdignoredups only prevents pushing the same entry on the top
+    # so we may use another function to remove duplicates
+    dirstack=( ${(u)dirstack} )
 }
 
 # fzf/skim integration
@@ -56,7 +59,7 @@ bindkey -M emacs '\ed' _dirstack_widget
 bindkey -M vicmd '\ed' _dirstack_widget
 bindkey -M viins '\ed' _dirstack_widget
 
-# read last dirs on load
+# read last dirstack on load
 if [[ -f "$DIRSTACKFILE" ]] && [[ $#dirstack -eq 0 ]]; then
     dirstack=( "${(@f)"$(< "$DIRSTACKFILE")"}" )
     # clean up the stack
@@ -65,7 +68,7 @@ if [[ -f "$DIRSTACKFILE" ]] && [[ $#dirstack -eq 0 ]]; then
     #[[ -d "${dirstack[1]}" ]] && cd -- "${dirstack[1]}"
 fi
 
-# sync directory stack file on exit
+# save dirstack file on exit
 zshexit() {
     print -l -- "$PWD" "${(u)dirstack[@]}" > $DIRSTACKFILE
 }
